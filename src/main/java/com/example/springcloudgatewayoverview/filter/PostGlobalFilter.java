@@ -1,9 +1,5 @@
 package com.example.springcloudgatewayoverview.filter;
 
-import com.example.springcloudgatewayoverview.model.Company;
-import com.example.springcloudgatewayoverview.model.Student;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.reactivestreams.Publisher;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
@@ -19,7 +15,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 public class PostGlobalFilter implements WebFilter {
 
@@ -50,18 +45,6 @@ public class PostGlobalFilter implements WebFilter {
                         joinedBuffers.read(content);
                         String responseBody = new String(content, StandardCharsets.UTF_8);//MODIFY RESPONSE and Return the Modified response
                         System.out.println("requestId: "+request.getId()+", method: "+request.getMethodValue()+", req url: "+request.getURI()+", response body :"+ responseBody);
-                        try {
-                            if(request.getURI().getPath().equals("/first") && request.getMethodValue().equals("GET")) {
-                                List<Student> student = new ObjectMapper().readValue(responseBody, List.class);
-                                System.out.println("student:" + student);
-                            }
-                            else if(request.getURI().getPath().equals("/second") && request.getMethodValue().equals("GET")) {
-                                List<Company> companies = new ObjectMapper().readValue(responseBody, List.class);
-                                System.out.println("companies:" + companies);
-                            }
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
                         return dataBufferFactory.wrap(responseBody.getBytes());
                     })).onErrorResume(err -> {
 

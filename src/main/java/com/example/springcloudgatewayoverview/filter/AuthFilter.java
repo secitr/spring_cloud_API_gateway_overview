@@ -1,6 +1,5 @@
 package com.example.springcloudgatewayoverview.filter;
 
-import com.example.springcloudgatewayoverview.util.AuthUtil;
 import com.example.springcloudgatewayoverview.util.JWTUtil;
 import com.example.springcloudgatewayoverview.validator.RouteValidator;
 import io.jsonwebtoken.Claims;
@@ -26,9 +25,6 @@ public class AuthFilter implements GatewayFilter {
     @Autowired
     private JWTUtil jwtUtil;
 
-    @Autowired
-    private AuthUtil authUtil;
-
     @Value("${authentication.enabled}")
     private boolean authEnabled;
 
@@ -38,7 +34,6 @@ public class AuthFilter implements GatewayFilter {
             System.out.println("Authentication is disabled. To enable it, make \"authentication.enabled\" property as true");
             return chain.filter(exchange);
         }
-        String token ="";
         ServerHttpRequest request = exchange.getRequest();
 
         if(routeValidator.isSecured.test(request)) {
@@ -47,13 +42,8 @@ public class AuthFilter implements GatewayFilter {
                 System.out.println("in error");
                 return this.onError(exchange,"Credentials missing",HttpStatus.UNAUTHORIZED);
             }
-            if (request.getHeaders().containsKey("userName") && request.getHeaders().containsKey("role")) {
-                token = authUtil.getToken(request.getHeaders().get("userName").toString(), request.getHeaders().get("role").toString());
-            }
-            else {
-                token = request.getHeaders().get("Authorization").toString().split(" ")[1];
-            }
 
+            String token = request.getHeaders().get("Authorization").toString().split(" ")[1];
             if(jwtUtil.isInvalid(token)) {
                 return this.onError(exchange,"Auth header invalid",HttpStatus.UNAUTHORIZED);
             }
@@ -62,6 +52,9 @@ public class AuthFilter implements GatewayFilter {
             }
 
             this.populateRequestWithHeaders(exchange,token);
+        }
+        else {
+            System.out.println("isSecured: false");
         }
         return chain.filter(exchange);
     }
@@ -72,21 +65,16 @@ public class AuthFilter implements GatewayFilter {
         return response.setComplete();
     }
 
-    private String getAuthHeader(ServerHttpRequest request) {
-        return  request.getHeaders().getOrEmpty("Authorization").get(0);
-    }
-
-
     private boolean isCredsMissing(ServerHttpRequest request) {
-        return !(request.getHeaders().containsKey("userName") && request.getHeaders().containsKey("role")) && !request.getHeaders().containsKey("Authorization");
+        return !(request.getHeaders().containsKey("username") && request.getHeaders().containsKey("roles")) && !request.getHeaders().containsKey("Authorization");
     }
 
     private void populateRequestWithHeaders(ServerWebExchange exchange, String token) {
         Claims claims = jwtUtil.getALlClaims(token);
         exchange.getRequest()
                 .mutate()
-                .header("id",String.valueOf(claims.get("id")))
-                .header("role", String.valueOf(claims.get("role")))
+                .header("username",String.valueOf(claims.get("username")))
+                .header("roles", String.valueOf(claims.get("roles")))
                 .build();
     }
 }
